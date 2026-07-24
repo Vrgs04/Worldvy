@@ -68,7 +68,8 @@ function Board({
             return (
               <div
                 key={i}
-                className={`tile ${state ?? ''} ${letter ? 'filled' : ''}`}
+                className={`tile ${state ?? ''} ${state ? 'revealed' : ''} ${letter ? 'filled' : ''}`}
+                style={state ? { animationDelay: `${i * 90}ms` } : undefined}
                 aria-label={state ? `${letter}, ${labelState[state]}` : letter || 'vacía'}
               >
                 {letter}
@@ -248,10 +249,13 @@ function Game({
       </header>
       <Board guesses={guesses} current={current} solution={solution} />
       {finished && (
-        <section className="result">
+        <section className={`result ${mode === 'daily' ? 'daily-result' : ''}`}>
           <h2>{won ? '¡Muy bien!' : 'La palabra era ' + solution.toLocaleUpperCase('es')}</h2>
           {mode === 'daily' ? (
-            <p>Nueva palabra en {formatCountdown(countdown)}</p>
+            <div className="next-daily">
+              <span>Nueva palabra en</span>
+              <strong>{formatCountdown(countdown)}</strong>
+            </div>
           ) : (
             <button onClick={() => location.reload()}>Otra partida</button>
           )}
@@ -260,7 +264,7 @@ function Game({
           </button>
         </section>
       )}
-      <Keyboard onKey={key} guesses={guesses} solution={solution} disabled={finished} />
+      {!finished && <Keyboard onKey={key} guesses={guesses} solution={solution} disabled={false} />}
     </main>
   );
 }
