@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef as reactUseRef, useState } from 'react';
 const useRef = <T,>(initial?: T) => reactUseRef<T | undefined>(initial);
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { solutionWords } from './data/words';
+import { acceptedWords, solutionWords } from './data/words';
+import broadAcceptedWords from './data/generated/accepted-five-letter.json';
 import { dailyWord, localDateKey, msUntilTomorrow } from './domain/daily';
-import { evaluateGuess, isValidWord, normalizeWord } from './domain/words';
+import { evaluateGuess, normalizeWord } from './domain/words';
 import { nextWithoutRepeat } from './domain/rotation';
 import { clear, load, save, type AppData, type StoredGame } from './storage/store';
 type Page = 'home' | 'daily' | 'unlimited' | 'timed' | 'stats' | 'help' | 'settings' | 'credits';
 type GameMode = 'daily' | 'unlimited';
+const playableWords = [...broadAcceptedWords, ...acceptedWords, 'avion', 'avión', 'ceder'];
+const playableWordSet = new Set(playableWords.map(normalizeWord));
 const keys = [
   'Q',
   'W',
@@ -135,16 +138,22 @@ function Game({
       : mode === 'unlimited' && data.unlimitedGame && !data.unlimitedGame.finished
         ? data.unlimitedGame
         : undefined;
-  const solution =
-    initial?.solution ??
-    (mode === 'daily'
-      ? dailyWord(solutionWords, date)
-      : nextWithoutRepeat(solutionWords, data.recent));
+  const [solution] = useState(
+    () =>
+      initial?.solution ??
+      (mode === 'daily'
+        ? dailyWord(solutionWords, date)
+        : nextWithoutRepeat(solutionWords, data.recent)),
+  );
   const [guesses, setGuesses] = useState<string[]>(initial?.guesses ?? []);
   const [current, setCurrent] = useState('');
   const [finished, setFinished] = useState(initial?.finished ?? false);
   const [won, setWon] = useState(initial?.won ?? false);
   const [countdown, setCountdown] = useState(msUntilTomorrow(Date.now()));
+  useEffect(() => {
+    document.body.classList.add('game-active');
+    return () => document.body.classList.remove('game-active');
+  }, []);
   const persist = useCallback(
     (gs: string[], done: boolean, victory: boolean) => {
       const game: StoredGame = {
@@ -174,8 +183,8 @@ function Game({
   );
   const submit = useCallback(() => {
     const word = normalizeWord(current);
-    if (!isValidWord(current)) {
-      toast('Escribe cinco letras');
+    if (!playableWordSet.has(normalizeWord(current))) {
+      toast('Esa palabra no está en el catálogo');
       return;
     }
     const gs = [...guesses, word];
@@ -268,14 +277,117 @@ function Game({
     </main>
   );
 }
+function TimedPuzzle({
+  left,
+  score,
+  paused,
+  onSolved,
+  onResume,
+  onHome,
+  toast,
+}: {
+  left: number;
+  score: number;
+  paused: boolean;
+  onSolved: () => void;
+  onResume: () => void;
+  onHome: () => void;
+  toast: (message: string) => void;
+}) {
+  const [solution, setSolution] = useState(() => nextWithoutRepeat(solutionWords, []));
+  const [recent, setRecent] = useState<string[]>([solution]);
+  const [guesses, setGuesses] = useState<string[]>([]);
+  const [current, setCurrent] = useState('');
+  const [transitioning, setTransitioning] = useState(false);
+  const advance = useCallback(
+    (solved: boolean) => {
+      setTransitioning(true);
+      if (solved) onSolved();
+      window.setTimeout(() => {
+        const next = nextWithoutRepeat(solutionWords, recent);
+        setRecent((values) => [...values, next].slice(-30));
+        setSolution(next);
+        setGuesses([]);
+        setCurrent('');
+        setTransitioning(false);
+      }, 650);
+    },
+    [onSolved, recent],
+  );
+  const submit = useCallback(() => {
+    if (transitioning || paused) return;
+    if (!playableWordSet.has(normalizeWord(current))) {
+      toast('Esa palabra no está en el catálogo');
+      return;
+    }
+    const word = normalizeWord(current);
+    const nextGuesses = [...guesses, word];
+    const solved = word === normalizeWord(solution);
+    setGuesses(nextGuesses);
+    setCurrent('');
+    if (solved || nextGuesses.length === 6) advance(solved);
+  }, [advance, current, guesses, paused, solution, toast, transitioning]);
+  const key = useCallback(
+    (value: string) => {
+      if (transitioning || paused) return;
+      if (value === 'ENTER') return submit();
+      if (value === '⌫' || value === 'BACKSPACE') {
+        setCurrent((word) => word.slice(0, -1));
+        return;
+      }
+      if (/^[A-ZÑ]$/.test(value) && current.length < 5) setCurrent((word) => word + value);
+    },
+    [current.length, paused, submit, transitioning],
+  );
+  useEffect(() => {
+    document.body.classList.add('game-active');
+    const handler = (event: KeyboardEvent) => key(event.key.toLocaleUpperCase('es'));
+    window.addEventListener('keydown', handler);
+    return () => {
+      document.body.classList.remove('game-active');
+      window.removeEventListener('keydown', handler);
+    };
+  }, [key]);
+  return (
+    <main className="game timed-game">
+      <header>
+        <button className="icon" onClick={onHome} aria-label="Salir al inicio">←</button>
+        <div className="timed-metric">
+          <span>Tiempo</span>
+          <strong>{formatCountdown(left)}</strong>
+        </div>
+        <div className="timed-metric score-metric">
+          <span>Resueltas</span>
+          <strong>{score}</strong>
+        </div>
+      </header>
+      <Board guesses={guesses} current={current} solution={solution} />
+      <Keyboard
+        onKey={key}
+        guesses={guesses}
+        solution={solution}
+        disabled={transitioning || paused}
+      />
+      {paused && (
+        <section className="pause-overlay result">
+          <h2>Partida pausada</h2>
+          <p>El tiempo se detuvo mientras la aplicación estaba en segundo plano.</p>
+          <button onClick={onResume}>Reanudar</button>
+        </section>
+      )}
+    </main>
+  );
+}
 function Timed({
   data,
   setData,
   onHome,
+  toast,
 }: {
   data: AppData;
   setData: (d: AppData) => void;
   onHome: () => void;
+  toast: (message: string) => void;
 }) {
   const [duration, setDuration] = useState(3);
   const [playing, setPlaying] = useState(false);
@@ -283,6 +395,7 @@ function Timed({
   const [left, setLeft] = useState(0);
   const [score, setScore] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [ended, setEnded] = useState(false);
   useEffect(() => {
     if (!playing || paused) return;
     const tick = () => {
@@ -290,6 +403,7 @@ function Timed({
       setLeft(l);
       if (!l) {
         setPlaying(false);
+        setEnded(true);
         setData({
           ...data,
           timeRecords: {
@@ -310,7 +424,7 @@ function Timed({
     document.addEventListener('visibilitychange', visibility);
     return () => document.removeEventListener('visibilitychange', visibility);
   }, [playing]);
-  if (!playing)
+  if (!playing && !ended)
     return (
       <main>
         <button className="back" onClick={onHome}>
@@ -349,36 +463,39 @@ function Timed({
         </section>
       </main>
     );
-  return (
-    <main>
-      <button className="back" onClick={onHome}>
-        ← Salir
-      </button>
-      <section className="hero compact">
-        <span className="eyebrow">TIEMPO RESTANTE</span>
-        <h1>{formatCountdown(left)}</h1>
-        <p>Puntuación: {score}</p>
-        {paused ? (
-          <>
-            <p>La partida está pausada.</p>
-            <button
-              className="primary"
-              onClick={() => {
-                setEnd(Date.now() + left);
-                setPaused(false);
-              }}
-            >
-              Reanudar
-            </button>
-          </>
-        ) : (
-          <button className="primary" onClick={() => setScore((s) => s + 1)}>
-            Registrar palabra acertada
+  if (ended)
+    return (
+      <main className="timed-summary">
+        <section className="result">
+          <span className="eyebrow">TIEMPO TERMINADO</span>
+          <h1>{score}</h1>
+          <h2>{score === 1 ? 'palabra resuelta' : 'palabras resueltas'}</h2>
+          <p>Récord de {duration} min: {Math.max(score, data.timeRecords[duration] ?? 0)}</p>
+          <button
+            onClick={() => {
+              setScore(0);
+              setEnded(false);
+            }}
+          >
+            Jugar otra vez
           </button>
-        )}{' '}
-        {!left && <h2>Tiempo terminado</h2>}
-      </section>
-    </main>
+          <button className="secondary" onClick={onHome}>Inicio</button>
+        </section>
+      </main>
+    );
+  return (
+    <TimedPuzzle
+      left={left}
+      score={score}
+      paused={paused}
+      onSolved={() => setScore((value) => value + 1)}
+      onResume={() => {
+        setEnd(Date.now() + left);
+        setPaused(false);
+      }}
+      onHome={onHome}
+      toast={toast}
+    />
   );
 }
 export function App() {
@@ -419,7 +536,17 @@ export function App() {
       </>
     );
   if (page === 'timed')
-    return <Timed data={data} setData={setData} onHome={() => setPage('home')} />;
+    return (
+      <>
+        <Timed
+          data={data}
+          setData={setData}
+          onHome={() => setPage('home')}
+          toast={toast}
+        />
+        <div className="toast" aria-live="polite">{message}</div>
+      </>
+    );
   return (
     <main>
       <header className="top">

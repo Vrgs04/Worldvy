@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateGuess, isValidWord, normalizeWord } from './words';
+import { evaluateGuess, isAcceptedGuess, isValidWord, normalizeWord } from './words';
 import { dailyWord } from './daily';
 import { nextWithoutRepeat } from './rotation';
 import { remainingMs, pauseTimer, resumeTimer } from './timer';
@@ -9,6 +9,13 @@ describe('palabras', () => {
     expect(isValidWord('avion')).toBe(true);
     expect(isValidWord('avi\u00f3n')).toBe(true);
     expect(isValidWord('ceder')).toBe(true);
+  });
+  it('rechaza secuencias que no pertenecen al catálogo', () => {
+    const catalog = ['avión', 'ceder'];
+    expect(isAcceptedGuess('avion', catalog)).toBe(true);
+    expect(isAcceptedGuess('ceder', catalog)).toBe(true);
+    expect(isAcceptedGuess('NNNNN', catalog)).toBe(false);
+    expect(isAcceptedGuess('aaaaa', catalog)).toBe(false);
   });
   it('normaliza tildes, caso y símbolos', () => expect(normalizeWord(' Á-rbOl! ')).toBe('ARBOL'));
   it('conserva Ñ distinta de N', () => {

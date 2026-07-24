@@ -21,6 +21,15 @@ body {
   background: radial-gradient(circle at 80% 10%, #dfeac2 0, transparent 28%), var(--paper);
   color: var(--ink);
 }
+body.game-active {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
 button,
 select {
   font: inherit;
@@ -169,6 +178,9 @@ footer span {
   margin-left: auto;
 }
 .game {
+  position: fixed;
+  inset: 0;
+  width: 100%;
   max-width: 640px;
   margin: auto;
   padding: max(10px, env(safe-area-inset-top)) 12px max(8px, env(safe-area-inset-bottom));
@@ -178,6 +190,11 @@ footer span {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+.game button {
+  touch-action: manipulation;
 }
 .game header {
   display: flex;
@@ -303,6 +320,60 @@ footer span {
   padding: max(28px, env(safe-area-inset-top)) 24px max(28px, env(safe-area-inset-bottom));
   border-radius: 0;
   background: color-mix(in srgb, var(--paper) 96%, var(--green) 4%);
+}
+.timed-game header {
+  min-height: 58px;
+}
+.timed-metric {
+  display: grid;
+  gap: 2px;
+  text-align: center;
+}
+.timed-metric span {
+  color: #65716b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.timed-metric strong {
+  font-size: clamp(23px, 7vw, 34px);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.score-metric strong {
+  color: var(--green);
+}
+.pause-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  display: grid;
+  place-content: center;
+  margin: 0;
+  padding: 28px;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
+  backdrop-filter: blur(10px);
+}
+.timed-summary {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 24px;
+}
+.timed-summary .result {
+  width: min(100%, 520px);
+  padding: 38px 24px;
+}
+.timed-summary h1 {
+  margin: 10px 0 0;
+  color: var(--green);
+  font-size: clamp(88px, 28vw, 180px);
+  line-height: 0.9;
+}
+.timed-summary h2 {
+  margin: 8px 0 24px;
 }
 .daily-result h2 {
   margin: 0;

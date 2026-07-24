@@ -8,3 +8,4 @@ export function evaluateGuess(guess:string,solution:string):LetterResult[]{
   g.forEach((letter,i)=>{if(result[i]?.state==='correct')return; const count=remaining.get(letter)??0; if(count>0){result[i]={letter,state:'present'};remaining.set(letter,count-1)}}); return result;
 }
 export const isValidWord=(value:string)=>normalizeWord(value).length===5;
+export const isAcceptedGuess=(value:string,catalog:readonly string[])=>isValidWord(value)&&catalog.some(word=>normalizeWord(word)===normalizeWord(value));
