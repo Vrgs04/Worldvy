@@ -1,0 +1,1 @@
+export function nextWithoutRepeat<T>(items:T[],recent:T[],random=Math.random):T{if(!items.length)throw new Error('Catálogo vacío');const pool=items.filter(x=>!recent.includes(x));const source=pool.length?pool:items;return source[Math.floor(random()*source.length)]!}

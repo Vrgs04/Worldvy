@@ -1,0 +1,3 @@
+# Reglas permanentes de Worldvy
+
+Después de toda solicitud que modifique el proyecto: leer este archivo; inspeccionar el estado; implementar por completo; actualizar pruebas; ejecutar `pnpm check`; corregir errores; construir producción; revisar el diff; excluir secretos y archivos locales; crear un commit descriptivo; hacer push a `main`; esperar GitHub Actions con `gh run list --limit 5` y `gh run watch`; corregir y repetir si falla; verificar Cloudflare Pages; e informar resumen, pruebas, hash corto, push, workflow y URL. Nunca afirmar que hubo despliegue sin verificarlo. No forzar ni reescribir historial.

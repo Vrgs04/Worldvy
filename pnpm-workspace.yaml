@@ -1,0 +1,11 @@
+allowBuilds:
+  esbuild: true
+  sharp: true
+  workerd: true
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+  - workerd
+overrides:
+  rollup: npm:@rollup/wasm-node@4.62.2
+  esbuild: npm:esbuild-wasm@0.28.1

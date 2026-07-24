@@ -1,0 +1,1 @@
+export const updateStreak=(lastDate:string|undefined,today:string,current:number,won:boolean)=>{if(!won)return 0;if(!lastDate)return 1;const a=new Date(`${lastDate}T12:00:00`),b=new Date(`${today}T12:00:00`);return Math.round((b.getTime()-a.getTime())/86400000)===1?current+1:lastDate===today?current:1};

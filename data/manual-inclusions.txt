@@ -1,0 +1,3 @@
+# palabra|frecuencia|justificación
+niñez|100|Forma común con Ñ
+ñandu|10|Voz panhispánica válida (grafía original: ñandú)

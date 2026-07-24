@@ -1,0 +1,2 @@
+# Una palabra normalizada por línea; mantener la justificación después de |
+xxxxx|marcador incompatible
